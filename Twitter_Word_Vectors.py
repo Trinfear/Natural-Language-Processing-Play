@@ -1,5 +1,5 @@
-#!pyhton3
-# twittert word vectors
+#!python3
+#  word vectors
 
 
 import nltk
@@ -28,8 +28,6 @@ def get_data():
     
     stop_words = set(nltk.corpus.stopwords.words('english'))
     stop_words.update("'", '"', '.', ',', '?', '!')
-
-    all_data = []
     
     data_file = open(pos_data_dir)
     pos_data = data_file.read()
@@ -49,11 +47,10 @@ def get_data():
         new_sent = []
         words = word_tokenize(sentence)
         for word in words:
-            if not word in stop_words:
+            if word not in stop_words:
                 new_sent.append(word)
         if len(new_sent) > 2:
             processed_data.append(new_sent)
-        
 
     return processed_data
 
@@ -83,7 +80,7 @@ def one_hot(words):
 
 def generate_examples(corpus, train_pct=0.95, train_size=35000,
                       test_size=5000):
-    # roughly 13.3k words acorss 10.5k sentences
+    # roughly 13.3k words across 10.5k sentences
     # splits data into train and test
     # generates features and labels using corpus for each segment
         # use CBOW, ie feed context words to guess target word
@@ -148,14 +145,11 @@ def generate_embeddings(embed_vector, vector_size, train_set, test_set,
     x_train = [j[0] for j in train_set]
     y_train = [j[1] for j in train_set]
 
-    x_test = [j[0] for j in test_set]
-    y_test = [j[1] for j in test_set]
-
     x_temp = tf.placeholder(tf.float32, shape=(None, vector_size))
     y_temp = tf.placeholder(tf.float32, shape=(None, vector_size))
 
     w1 = tf.Variable(tf.random_normal([vector_size, embed_vector]))
-    b1 = tf.Variable(tf.random_normal([1])) # why isn't this vector_size?
+    b1 = tf.Variable(tf.random_normal([1]))  # why isn't this vector_size?
 
     w2 = tf.Variable(tf.random_normal([embed_vector, vector_size]))
     b2 = tf.Variable(tf.random_normal([1]))
@@ -163,18 +157,16 @@ def generate_embeddings(embed_vector, vector_size, train_set, test_set,
     hidden_layer = tf.add(tf.matmul(x_temp, w1), b1)
     prediction = tf.nn.softmax(tf.add(tf.matmul(hidden_layer, w2), b2))
 
-    #error = tf.reduce_mean(tf.reduce_sum(tf.square(y_temp - prediction), axis=[1]))
-    #error = tf.reduce_mean(tf.reduce_sum((y_temp - prediction)**2, axis=[1]))
+    # different error functions?  Standard seems to be the first one, but keeps returning nan
+    # error = tf.reduce_mean(tf.reduce_sum(tf.square(y_temp - prediction), axis=[1]))
+    # error = tf.reduce_mean(tf.reduce_sum((y_temp - prediction)**2, axis=[1]))
     error = tf.reduce_mean(-tf.reduce_sum(y_temp * tf.log(prediction), axis=[1]))
     train_op = tf.train.GradientDescentOptimizer(0.02).minimize(error)
-    # add in changing learning_rate
-    # when change drops below x, drop learning rate and keep going?
+    # add in changing learning_rate when change drops below x, drop learning rate and keep going?
 
     sess = tf.Session()
     init = tf.global_variables_initializer()
     sess.run(init)
-
-    train_dict={x_temp: x_train, y_temp: y_train}
 
     change = 100
     cycle = 0
@@ -188,13 +180,13 @@ def generate_embeddings(embed_vector, vector_size, train_set, test_set,
                 batch_end = batch_start + batch_size
                 if batch_end > len(x_train):
                     continue
-                train_dict={x_temp: x_train[batch_start:batch_end],
-                            y_temp: y_train[batch_start:batch_end]}
+                train_dict = {x_temp: x_train[batch_start:batch_end],
+                              y_temp: y_train[batch_start:batch_end]}
                 batch_start = batch_end
-                sess.run(train_op, feed_dict = train_dict)
+                sess.run(train_op, feed_dict=train_dict)
                 
-        current_loss = sess.run(error,feed_dict = {x_temp:x_train[:batch_size],
-                                                   y_temp:y_train[:batch_size]})
+        current_loss = sess.run(error, feed_dict={x_temp: x_train[:batch_size],
+                                                  y_temp: y_train[:batch_size]})
         change = prev_loss - current_loss
         
         print(cycle, ' rounds trained, loss is: ', current_loss, 'Change: ',
@@ -213,7 +205,7 @@ def generate_embeddings(embed_vector, vector_size, train_set, test_set,
     # take mean of loss?
     test_errors = []
     for datum in test_set:
-        test_dict = {x_temp:[datum[0]], y_temp:[datum[1]]}
+        test_dict = {x_temp: [datum[0]], y_temp: [datum[1]]}
         test_error = sess.run(error, feed_dict=test_dict)
         test_errors.append(test_error)
 
@@ -235,14 +227,14 @@ def closest_words(target, n_count=5):
         distance = np.linalg.norm(vector - new_vec)
         distances.append((distance, word))
     close_words = sorted(distances)[:n_count]
-    return(close_words)
+    return close_words
 
 
 if __name__ == '__main__':
     # intake train data
     # find all unique words
     # create one hot embedding for words
-    # convert text to onehot embedding
+    # convert text to one hot embedding
     # generate model
     # train model and fetch embeddings
     # test model
@@ -274,6 +266,3 @@ if __name__ == '__main__':
     pickle.dump(new_embeddings, save_file)
     save_file.close()
     print('saved')
-
-    
-
