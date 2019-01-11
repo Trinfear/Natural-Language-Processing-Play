@@ -14,11 +14,11 @@ add percentages to pie chart
 
 '''
 
-set max value for dtime and rtime
-when that value is reached for each, at the start of each loop
-    subtract 1 from pos_votes, neg_votes and time, to be readded
-        instead just subtract a ratio from each?
-        ie if pos : neg == 3: 1, subtract 3/4 from pos and 1/4 form neg
+reformat so it only calculates for datapoints in lines[-graph_window - 50:]?
+    rather than only pulling x amount of times or w/e fix the problem at source
+    everything that currently uses [-graph_window:] would be normal
+    
+    
 
 '''
 
@@ -31,20 +31,10 @@ ax2 = fig.add_subplot(grid[0,0])    # dem ups and downs
 ax3 = fig.add_subplot(grid[0,1:])    # both party sentiment
 ax4 = fig.add_subplot(grid[1,1])
 
-max_window = 1000
-
-
-def parse_date(text):
-    # give text in a line[:4]
-    # example line: rneg2019-01-11 13:23:39.122885
-    # example date: 2019-01-11 13:23:39.122885
-    year = text[:4]
-    month = text[5:7]
-    day = text[8:10]
-    hour = text[11:13]
-    minute = text[14:16]
-    second = text[17:24]
-    return(hour, minute, second)
+calc_window = 500
+graph_window = 5000
+tick_space = 1000
+data_window = graph_window + 50
 
 
 def animate(i):
@@ -77,12 +67,12 @@ def animate(i):
     for line in lines:  # restructure so there is overall time
                         # add in repeat values if its not the party affected
         
-        if rtime > max_window:
+        if rtime > calc_window:
             rep_vote_ratio = rep_pos_votes / rtime
             rtime -= 1
             rep_pos_votes -= rep_vote_ratio
             rep_neg_votes -= (1 - rep_vote_ratio)
-        if dtime > max_window:
+        if dtime > calc_window:
             dem_vote_ratio = dem_pos_votes / dtime
             dtime -= 1
             dem_pos_votes -= dem_vote_ratio
@@ -135,42 +125,45 @@ def animate(i):
 
     explode=(0.05, 0.05)
     
-    x_min = times[-5000]
+    x_min = times[-graph_window]
     x_max = time
     y_min = -0.1
     y_max = 1.1
 
     # print past 50 so initial values have time to get replaced
     # use deepskyblue sp that text and other colors stand out better?
-    ax1.plot(times[-5000:], r_pos_sents[-5000:], label='Republican-Positive',
-             color='r')
-    ax1.plot(times[-5000:], r_neg_sents[-5000:], color='k')
+    ax1.plot(times[-graph_window:], r_pos_sents[-graph_window:],
+             label='Republican-Positive', color='r')
+    ax1.plot(times[-graph_window:], r_neg_sents[-graph_window:], color='k')
     
-    ax2.plot(times[-5000:], d_pos_sents[-5000:], label='Democrat-Positive',
-             color = 'deepskyblue')
-    ax2.plot(times[-5000:], d_neg_sents[-5000:], label='Negative-Tweets', color='k')
+    ax2.plot(times[-graph_window:], d_pos_sents[-graph_window:],
+             label='Democrat-Positive', color = 'deepskyblue')
+    ax2.plot(times[-graph_window:], d_neg_sents[-graph_window:],
+             label='Negative-Tweets', color='k')
 
-    ax3.plot(times[-15000:], dem_sent[-15000:], color='deepskyblue')
-    ax3.plot(times[-15000:], rep_sent[-15000:], color='r')
+    ax3.plot(times[-graph_window:], dem_sent[-graph_window:],
+             color='deepskyblue')
+    ax3.plot(times[-graph_window:], rep_sent[-graph_window:], color='r')
 
     ax4.pie([dem_sent[-1:], rep_sent[-1:]],
             colors=['deepskyblue','r'], shadow=True, autopct='%1.1f%%',
             explode=explode)
 
     # find a better way to deal with this text
-##    ax3.text(0, -0.15, 'When both partes are shown on a graph together,',
-##             fontsize=8)
-##    ax3.text(0, -0.17, 'the parties are represented by the sum of',
-##             fontsize=8)
-##    ax3.text(0, -0.19, 'the positive sentiment for their party and negative'
-##             , fontsize=8)
-##    ax3.text(0, -0.21, 'sentiments of the other party', fontsize=8)
+    ax4.text(0, -1.4, 'When both partes are shown on a graph together,',
+             fontsize=8)
+    ax4.text(0, -1.5, 'the parties are represented by the sum of',
+             fontsize=8)
+    ax4.text(0, -1.6, 'the positive sentiment for their party and negative'
+             , fontsize=8)
+    ax4.text(0, -1.7, 'sentiments of the other party', fontsize=8)
 
     fig.legend(loc=10, bbox_to_anchor=(0.8, 0.2))
 
-    ax1.set_xticks(range(0, len(times), 1000))
-    ax2.set_xticks(range(0, len(times), 1000))
-    ax3.set_xticks(range(0, len(times), 3000))
+    data_size = len(times)
+    ax1.set_xticks(range(0, data_size, tick_space))
+    ax2.set_xticks(range(0, data_size, tick_space))
+    ax3.set_xticks(range(0, data_size, tick_space))
 
     for label in ax1.xaxis.get_ticklabels():
         label.set_rotation(45)
@@ -181,10 +174,21 @@ def animate(i):
     for label in ax3.xaxis.get_ticklabels():
         label.set_rotation(45)
 
-    labels = [t[:11] + '\n' + t[11:16] for t in times]
+    # label set needs fixing
+    label_set = [t[:11] + '\n' + t[11:16] for t in times[-graph_window:]]
+    labels = []
+
+    labels.append(label_set[0])
+
+    for i in range(0, graph_window, tick_space):
+        position = i + tick_space - 1
+        labels.append(label_set[position])
+
     ax1.set_xticklabels(labels)
     ax2.set_xticklabels(labels)
     ax3.set_xticklabels(labels)
+
+    #ax1.set_xticks(labels[0], labels[1000], labels[2000], labels[3000])
 
     ax1.tick_params(labelsize=8)
     ax2.tick_params(labelsize=8)
@@ -192,6 +196,7 @@ def animate(i):
 
     ax1.axis([x_min, x_max, y_min, y_max])
     ax2.axis([x_min, x_max, y_min, y_max])
+    ax3.axis([x_min, x_max, y_min, y_max])
 
 
 ani = animation.FuncAnimation(fig, animate)
