@@ -3,14 +3,11 @@
 '''
 
 graph twitter sentiment, take two
-put all three sections into one script?
 
 get partied favour, by combing partisan words with sentiment
     ie sort tweets with trump or republican  vs pelosi or democrat
     then get sentiment for each
     assume democrat - = republican + and vice versa?
-
-three areas:
 
 create a twitter live feed which focuses on keyword
     this is mostly fine
@@ -24,12 +21,21 @@ create a sentiment analysis model
     make easier to import into other scripts
     general clean up and optimization
 
-'''
 
+improvements:
+    add tweet timestamps in save information
+    graph time and find a way to correlate time with certain events
+    mark areas of sudden big change
+    add scrolling data
+    delete old unused data, or transfer to a different save
+    add in a sharper gradient for sentiment change
+
+'''
 
 import nltk
 import random
 import pickle
+import datetime
 from sklearn.svm import NuSVC
 from collections import Counter
 from nltk.corpus import stopwords
@@ -48,7 +54,7 @@ pos_txt_dir = 'positive.txt'
 neg_txt_dir = 'negative.txt'
 
 save_model_dir = 'SVA_model_2.pickle'
-sentiment_save_dir = 'shutdown_sentiment_data.txt'
+sentiment_save_dir = 'shutdown_sentiment_data_2.txt'
 
 keywords = ['government shutdown']
 
@@ -253,7 +259,7 @@ class Listener(StreamListener):
 
         if confidence >= 0.8 and not party == '':
             output = open(sentiment_save_dir, 'a')
-            output.write(party + sentiment_value)
+            output.write(party + sentiment_value + str(datetime.datetime.now()))
             output.write('\n')
             output.close()
             
